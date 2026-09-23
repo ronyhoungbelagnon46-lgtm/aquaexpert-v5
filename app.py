@@ -1,82 +1,79 @@
 import streamlit as st
-import fitz  # PyMuPDF
-import re
+import os
 
 st.set_page_config(page_title="AquaExpert V5", page_icon="💧", layout="wide")
-
 st.title("💧 AquaExpert V5 - Assistant Hydraulique")
 st.caption("Par Rony - Version avec traitement d'épreuves PDF")
 
 tab1, tab2, tab3 = st.tabs(["💬 Chat Mondial", "📄 Solveur d'Épreuves", "🧮 Calculateurs"])
 
-# --- TAB 1 : CHAT ---
+# --- ONGLET 1 : CHAT INTELLIGENT ---
 with tab1:
     st.subheader("💬 Chat Mondial - Pose tes questions d'hydraulique")
     if "messages" not in st.session_state:
-        st.session_state.messages = [{"role":"assistant","content":"Salut Rony ! Je suis AquaExpert. Pose-moi une question sur les réseaux d'eau, pompes, etc."}]
-    
-    for m in st.session_state.messages:
-        with st.chat_message(m["role"]):
-            st.write(m["content"])
-    
-    prompt = st.chat_input("Ta question...")
-    if prompt:
-        st.session_state.messages.append({"role":"user","content":prompt})
-        low = prompt.lower()
-        if "debit" in low or "flow" in low:
-            rep = "**Débit** : Q = V x S. Q en m3/s, V vitesse (m/s), S section (m2). Ex: tuyau DN100 (0.0078m2) à 1m/s => 7.8 L/s."
-        elif "perte" in low or "hazen" in low:
-            rep = "**Perte de charge** : J = 10.67 x Q^1.852 / (C^1.852 x D^4.87). C=120 PVC, 100 fonte."
-        elif "pompe" in low or "puissance" in low:
-            rep = "**Puissance pompe** : P (kW) = (Rho x g x Q x HMT) / (rendement x 1000). HMT = Hauteur géo + pertes."
-        elif "bernoulli" in low:
-            rep = "**Bernoulli** : (P/ρg) + (V²/2g) + Z = constante."
+        st.session_state.messages = [{"role": "assistant", "content": "Salut Rony ! Je suis AquaExpert. Pose-moi une question sur l'hydraulique 💧"}]
+
+    for msg in st.session_state.messages:
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
+
+    def get_reponse_intelligente(question):
+        q = question.lower()
+        # Cas simple : plomberie maison
+        if any(x in q for x in ["robinet", "déboucher", "fuite", "evier", "wc", "toilette"]):
+            return f"""**Pour ton problème : '{question}'**
+
+Voici la solution pratique en 4 étapes :
+1.  **Ferme l'eau** : Coupe le robinet d'arrêt général.
+2.  **Nettoie** : Démonte le mousseur du robinet (le petit filtre au bout) et nettoie le calcaire avec du vinaigre blanc.
+3.  **Débouche** : Si c'est bouché, utilise une ventouse ou du bicarbonate + vinaigre, pas de produits chimiques agressifs.
+4.  **Vérifie le joint** : 90% des fuites viennent d'un joint usé (coûte 500F au marché).
+
+Si c'est plus complexe (pression, calcul de débit), dis-le moi et je passe en mode ingénieur !"""
+        
+        # Cas calcul hydraulique
         else:
-            rep = f"Question : '{prompt}'. Analyse toujours : 1) Données (débit, longueur, dénivelé) 2) Pertes 3) HMT. Donne des valeurs chiffrées et je calcule !"
-        st.session_state.messages.append({"role":"assistant","content":rep})
-        st.rerun()
+            return f"""**Analyse Hydraulique pour : '{question}'**
 
-# --- TAB 2 : SOLVEUR PDF ---
+1.  **Données** : On identifie Q, V, S, H
+2.  **Pertes de charge** : Linéaires (J = λ*L/D * V²/2g) et singulières
+3.  **HMT** : HMT = Hg + Pc + 10% marge
+4.  **Calcul** : 
+    - Débit : Q = V x S (Q en m³/s, V en m/s, S en m²)
+    - Si tu me donnes les chiffres (ex: tuyau 50m, diamètre 100mm, débit 10L/s), je te calcule tout de suite la HMT et la pompe nécessaire !
+
+Donne-moi les valeurs chiffrées pour un calcul exact."""
+
+    if prompt := st.chat_input("Ta question..."):
+        st.session_state.messages.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        with st.chat_message("assistant"):
+            reponse = get_reponse_intelligente(prompt)
+            st.markdown(reponse)
+        st.session_state.messages.append({"role": "assistant", "content": reponse})
+
 with tab2:
-    st.subheader("📄 Solveur d'Épreuves - Uploade ton épreuve en PDF")
-    uploaded = st.file_uploader("Glisse ton épreuve ici (PDF)", type=["pdf"])
-    
+    st.subheader("📄 Solveur d'Épreuves PDF")
+    uploaded = st.file_uploader("Upload ton épreuve hydraulique (PDF)", type="pdf")
     if uploaded:
-        with st.spinner("Lecture du PDF..."):
-            doc = fitz.open(stream=uploaded.read(), filetype="pdf")
-            full_text = ""
-            for page in doc:
-                full_text += page.get_text() + "\n"
-        
-        st.success(f"PDF lu ! {len(doc)} pages, {len(full_text)} caractères")
-        st.text_area("Texte extrait :", full_text[:8000], height=250)
-        
-        if st.button("🧠 Résoudre l'épreuve automatiquement"):
-            st.subheader("✅ Correction AquaExpert")
-            if "Q =" in full_text or "débit" in full_text.lower():
-                st.write("**Type : Calcul de débit**")
-                st.latex(r"Q = V \times S = V \times \frac{\pi D^2}{4}")
-            if "HMT" in full_text or "pompe" in full_text.lower():
-                st.write("**Type : Dimensionnement pompe**")
-                st.latex(r"HMT = H_{geo} + \sum \Delta H")
-                st.latex(r"P = \frac{\rho g Q HMT}{\eta}")
-            st.info("Méthodologie : 1. Lister données 2. Calculer pertes 3. Bernoulli 4. Conclure")
+        st.success(f"Fichier {uploaded.name} reçu ! Fonction d'analyse à connecter à l'IA.")
+        st.info("Pour l'instant, copie-colle les questions du PDF dans le Chat Mondial.")
 
-# --- TAB 3 : CALCULATEURS ---
 with tab3:
-    st.subheader("🧮 Calculateurs Hydrauliques Pro")
+    st.subheader("🧮 Calculateurs Rapides")
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("**1. Débit / Vitesse / Diamètre**")
-        D = st.number_input("Diamètre (mm)", 50, 1000, 100)
-        V = st.number_input("Vitesse (m/s)", 0.1, 5.0, 1.0)
-        S = 3.1416*(D/1000)**2/4
-        Q = S*V*1000
-        st.metric("Débit Q", f"{Q:.2f} L/s", f"{Q*3.6:.2f} m3/h")
+        debit = st.number_input("Débit Q (L/s)", value=10.0)
+        diametre = st.number_input("Diamètre (mm)", value=100.0)
+        if st.button("Calculer Vitesse"):
+            import math
+            s = math.pi * (diametre/1000)**2 / 4
+            v = (debit/1000) / s
+            st.success(f"Vitesse V = {v:.2f} m/s | Section S = {s*10000:.2f} cm²")
     with col2:
-        st.markdown("**2. Puissance Pompe**")
-        Qm3s = st.number_input("Débit Q (L/s) pour pompe", 1.0, 500.0, 20.0)/1000
-        HMT = st.number_input("HMT (m)", 1.0, 200.0, 30.0)
-        rend = st.number_input("Rendement (0-1)", 0.5, 0.95, 0.7)
-        P = 1000*9.81*Qm3s*HMT / rend /1000
-        st.metric("Puissance", f"{P:.2f} kW", f"{P*1.36:.2f} CV")
+        hg = st.number_input("Hauteur géométrique Hg (m)", value=10.0)
+        pc = st.number_input("Pertes de charge Pc (m)", value=3.0)
+        if st.button("Calculer HMT"):
+            hmt = hg + pc
+            st.success(f"HMT = {hmt:.2f} m (+10% = {hmt*1.1:.2f} m)")
