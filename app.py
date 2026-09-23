@@ -1,76 +1,76 @@
 import streamlit as st
+from groq import Groq
+import os
 
-st.set_page_config(page_title="AquaExpert V6", page_icon="💧", layout="wide")
-st.title("💧 AquaExpert V6 - Expert comme ChatGPT")
+# --- CONFIGURATION PAGE ---
+st.set_page_config(page_title="AquaExpert Bénin V7", page_icon="🐟", layout="centered")
 
+# --- STYLE CHATGPT ---
+st.markdown("""
+<style>
+.stChatMessage { border-radius: 15px; padding: 10px; }
+</style>
+""", unsafe_allow_html=True)
+
+st.title("🐟 AquaExpert Bénin V7")
+st.caption("Ton ingénieur aquacole personnel - Spécialiste Tilapia & Clarias - Bénin")
+
+# --- CONNEXION CERVEAU GROQ ---
+try:
+    api_key = st.secrets["GROQ_API_KEY"]
+    client = Groq(api_key=api_key)
+    model_name = "llama-3.3-70b-versatile"
+except Exception as e:
+    st.error("❌ Clé GROQ_API_KEY non trouvée dans les Secrets. Vérifie tes Secrets Streamlit.")
+    st.stop()
+
+# --- MEMOIRE DE CONVERSATION ---
 if "messages" not in st.session_state:
-    st.session_state.messages = [{"role":"assistant","content":"Salut Rony! Je suis AquaExpert V6, en mode ChatGPT. Je donne des réponses longues, humaines, avec calculs détaillés. Teste-moi!"}]
+    st.session_state.messages = [
+        {"role": "system", "content": """Tu es AquaExpert Bénin V7, le meilleur ingénieur aquacole du Bénin.
+        Tu es un expert pratique, direct, pas vague.
+        Ton objectif: aider les pisciculteurs béninois à GAGNER DE L'ARGENT.
+        Règles:
+        1. Parle en français simple, avec un peu de langage béninois si besoin.
+        2. Donne TOUJOURS des chiffres concrets: doses en grammes, densités en poissons/m3, prix en FCFA, dimensions en mètres.
+        3. Ne sois JAMAIS vague. Si on te demande nourrissage, donne formule, quantité, heure.
+        4. Adapte tout au contexte Bénin: climat, aliments locaux (son de riz, tourteau de palmiste, farine de poisson), prix Abomey-Calavi.
+        5. Tu es spécialiste Tilapia, Clarias (poisson-chat), et étangs, bacs hors-sol, cages.
+        6. Termine toujours par une action concrète à faire.
+        7. Si tu ne sais pas, dis-le et propose une solution.
+        """}
+    ]
 
-for m in st.session_state.messages:
-    with st.chat_message(m["role"]):
-        st.markdown(m["content"])
+# --- AFFICHER HISTORIQUE ---
+for msg in st.session_state.messages:
+    if msg["role"]!= "system":
+        with st.chat_message(msg["role"]):
+            st.markdown(msg["content"])
 
-def reponse_humanisee(q):
-    q_low = q.lower()
-    if any(x in q_low for x in ["robinet","déboucher","evier","fuite"]):
-        return f"""**Ah, ton problème: "{q}" - je comprends, c'est pénible au quotidien!**
+# --- MESSAGE D'ACCUEIL ---
+if len(st.session_state.messages) == 1:
+    with st.chat_message("assistant"):
+        st.markdown("Salut Rony! 👋 Je suis **AquaExpert V7**. Pose-moi ta question : nourrissage, maladie, dimension bac, business plan, je te réponds direct avec les vrais chiffres du Bénin. C'est quoi ton problème aujourd'hui?")
 
-Laisse-moi t'expliquer comme si on était côte à côte à Abomey-Calavi :
-
-**Pourquoi ça se bouche ?**
-90% du temps c'est le calcaire de la SONEB + sable + cheveux qui s'accumule dans le mousseur (le petit filtre au bout).
-
-**Solution complète et humaine :**
-
-**Étape 1 - Sécurité (1 min)**
-Ferme le robinet d'arrêt sous l'évier. Mets une bassine. Si tu n'as pas de robinet d'arrêt, ferme le compteur général dehors.
-
-**Étape 2 - Le mousseur (la cause n°1)**
-Dévisse le petit embout au bout du robinet à la main (ou avec un chiffon). Tu vas voir du blanc/vert. Fais-le tremper 2h dans du vinaigre blanc pur (500F au marché). Frotte avec une vieille brosse à dents.
-
-**Étape 3 - Si ça coule encore faible**
-Prends une ventouse à 1500F. Bouche le trop-plein avec un chiffon, pompe 5-6 coups secs. Ou recette de grand-mère béninoise : 4 cuillères de bicarbonate + 1 verre de vinaigre chaud, laisse 30 min, puis eau bouillante.
-
-**Étape 4 - Vérifie le joint**
-Si ça goutte, le joint noir à l'intérieur est mort. Ça coûte 300-500F. Change-le, n'achète pas un nouveau robinet à 15000F!
-
-**À NE PAS FAIRE:** Acide sulfurique (Destop) - ça bouffe tes tuyaux PVC!
-
-Dis-moi : c'est un robinet de cuisine ou de douche? Je te donne la suite exacte."""
-
-    else:
-        return f"""**Super question d'ingénieur: "{q}"**
-
-Je te détaille comme un prof qui veut que tu comprennes vraiment, pas comme un robot.
-
-**1. Ce qu'on doit comprendre:**
-On parle ici d'énergie de l'eau. L'eau perd de l'énergie à cause du frottement (pertes de charge). La formule reine c'est Bernoulli + Darcy-Weisbach.
-
-**2. Les formules que j'utilise (retenons-les):**
-- Débit: Q = V x S (m³/s = m/s x m²)
-- Pertes linéaires: J = λ * (L/D) * (V² / 2g)
-- HMT = Hauteur géo + Pertes totales + 10% sécurité
-- Puissance pompe: P = (ρ.g.Q.HMT) / rendement
-
-**3. Exemple concret avec tes données:**
-Si tu me donnes par exemple: L=50m, D=100mm, Q=10L/s, Hg=15m
-Je calcule:
-S = π*0.1²/4 = 0.00785 m²
-V = 0.01 / 0.00785 = 1.27 m/s (parfait, entre 0.5 et 2 m/s)
-J = 0.02 * (50/0.1) * (1.27²/19.62) = 0.82m
-HMT = 15 + 0.82 + (20% singulières) = 19m => On prend 21m avec sécu.
-
-**4. Mon conseil terrain:**
-Prends une pompe avec HMT 21m et Q 10L/s, puissance ~ 3kW.
-
-Envoie-moi tes vrais chiffres (longueur, diamètre, débit, hauteur) et je te fais le calcul exact maintenant, pas vague!
-"""
-
-if prompt := st.chat_input("Parle-moi comme à ChatGPT..."):
-    st.session_state.messages.append({"role":"user","content":prompt})
+# --- INPUT UTILISATEUR ---
+if prompt := st.chat_input("Pose ta question aquacole ici..."):
+    st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
+
+    # --- REPONSE IA ---
     with st.chat_message("assistant"):
-        rep = reponse_humanisee(prompt)
-        st.markdown(rep)
-    st.session_state.messages.append({"role":"assistant","content":rep})
+        with st.spinner("Je réfléchis comme un ingénieur..."):
+            try:
+                completion = client.chat.completions.create(
+                    messages=st.session_state.messages,
+                    model=model_name,
+                    temperature=0.6,
+                    max_tokens=1024,
+                )
+                response = completion.choices[0].message.content
+                st.markdown(response)
+                st.session_state.messages.append({"role": "assistant", "content": response})
+            except Exception as e:
+                st.error(f"Erreur Groq: {e}")
+                st.info("Vérifie ta connexion ou que tu n'as pas dépassé le quota gratuit.")
