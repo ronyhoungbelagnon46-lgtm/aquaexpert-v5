@@ -268,10 +268,16 @@ if "messages" not in st.session_state:
     ]
 
 else:
-
     # Mise à jour du domaine si l'utilisateur change de mode
-    st.session_state.messages[0]["content"] = system_prompt
-
+    if len(st.session_state.messages) > 0:
+        st.session_state.messages[0]["content"] = system_prompt
+    else:
+        st.session_state.messages = [
+            {
+                "role": "system",
+                "content": system_prompt
+            }
+        ]
 
 # =========================================================
 # INFORMATIONS DU MODE
