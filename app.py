@@ -10,7 +10,19 @@ st.set_page_config(
     page_icon="💧",
     layout="wide"
 )
+import urllib.parse
+import time
 
+def generer_image_aqua(question_user, type_image="Schéma technique"):
+    if type_image == "Schéma technique":
+        prompt_base = f"technical civil engineering drawing, cross section blueprint, {question_user}, white background, dimensions, professional, clean lines, autocad style"
+    elif type_image == "Vue réaliste chantier":
+        prompt_base = f"realistic photo, construction site in Benin, {question_user}, workers, concrete, water flow"
+    else:
+        prompt_base = f"3D isometric render, {question_user}, hydraulic structure, modern"
+    prompt_encode = urllib.parse.quote(prompt_base)
+    url = f"https://image.pollinations.ai/prompt/{prompt_encode}?width=1024&height=1024&nologo=true&model=flux&seed={int(time.time())}"
+    return url
 # =========================================================
 # STYLE
 # =========================================================
